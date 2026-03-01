@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penman Geoglyph — Archytas Corrected</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap');
+
+        :root {
+            --void: #060610;
+            --gold: #c9a84c;
+            --delos: #e8c547;
+            --manus: #4a7c59;
+            --cubit: #2e6b8a;
+            --royal: #7b2d8e;
+            --archytas: #d4763a;
+            --torus: rgba(212, 118, 58, 0.3);
+            --cylinder: rgba(58, 140, 180, 0.2);
+            --cone: rgba(160, 80, 200, 0.2);
+            --parchment: #f0e6d0;
+            --squid: rgba(90, 40, 180, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--void);
+            color: var(--parchment);
+            font-family: 'Cormorant Garamond', serif;
+            overflow: hidden;
+            height: 100vh;
+            cursor: crosshair;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .hdr {
+            position: absolute;
+            top: 16px;
+            left: 22px;
+            pointer-events: auto;
+        }
+
+        .hdr h1 {
+            font-family: 'Cinzel', serif;
+            font-weight: 900;
+            font-size: 17px;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            color: var(--gold);
+            text-shadow: 0 0 20px rgba(201, 168, 76, 0.2);
+        }
+
+        .hdr .sub {
+            font-style: italic;
+            font-weight: 300;
+            font-size: 11px;
+            color: rgba(240, 230, 208, 0.35);
+            letter-spacing: 2px;
+            margin-top: 2px;
+        }
+
+        .hdr .correction {
+            font-size: 9px;
+            color: rgba(212, 118, 58, 0.6);
+            letter-spacing: 1px;
+            margin-top: 6px;
+            font-family: 'Cinzel', serif;
+            text-transform: uppercase;
+        }
+
+        #mode-badge {
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Cinzel', serif;
+            font-size: 10px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            padding: 3px 14px;
+            border: 1px solid rgba(201, 168, 76, 0.2);
+            transition: all 0.6s;
+        }
+
+        #mode-badge.penman {
+            color: var(--gold);
+            border-color: rgba(201, 168, 76, 0.3);
+            background: rgba(201, 168, 76, 0.04);
+        }
+
+        #mode-badge.demiurge {
+            color: rgba(90, 40, 180, 0.8);
+            border-color: rgba(90, 40, 180, 0.4);
+            background: rgba(90, 40, 180, 0.06);
+        }
+
+        #ctrls {
+            position: absolute;
+            bottom: 52px;
+            left: 22px;
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .cr {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .cl {
+            font-family: 'Cinzel', serif;
+            font-size: 8px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(240, 230, 208, 0.22);
+            width: 62px;
+            text-align: right;
+            margin-right: 5px;
+        }
+
+        .b {
+            font-family: 'Cinzel', serif;
+            font-size: 9px;
+            letter-spacing: 1px;
+            padding: 3px 7px;
+            border: 1px solid rgba(201, 168, 76, 0.18);
+            background: rgba(201, 168, 76, 0.02);
+            color: rgba(201, 168, 76, 0.35);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            user-select: none;
+        }
+
+        .b:hover {
+            background: rgba(201, 168, 76, 0.1);
+            color: var(--gold);
+        }
+
+        .b.on {
+            background: rgba(201, 168, 76, 0.1);
+            color: var(--gold);
+            border-color: var(--gold);
+            box-shadow: 0 0 6px rgba(201, 168, 76, 0.06);
+        }
+
+        #info {
+            position: absolute;
+            top: 16px;
+            right: 22px;
+            text-align: right;
+            min-width: 210px;
+        }
+
+        .ir {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 2px;
+        }
+
+        .ik {
+            color: rgba(240, 230, 208, 0.22);
+            font-family: 'Cinzel', serif;
+            font-size: 7px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            line-height: 14px;
+        }
+
+        .iv {
+            color: var(--gold);
+            font-weight: 600;
+            font-size: 11px;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        #alignment-gauge {
+            position: absolute;
+            right: 22px;
+            top: 240px;
+            width: 180px;
+            text-align: right;
+        }
+
+        .gauge-title {
+            font-family: 'Cinzel', serif;
+            font-size: 8px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(212, 118, 58, 0.5);
+            margin-bottom: 4px;
+        }
+
+        .gauge-bar {
+            height: 4px;
+            background: rgba(212, 118, 58, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .gauge-fill {
+            height: 100%;
+            background: var(--archytas);
+            border-radius: 2px;
+            transition: width 0.15s;
+            box-shadow: 0 0 8px rgba(212, 118, 58, 0.3);
+        }
+
+        .gauge-pct {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 22px;
+            font-weight: 300;
+            color: var(--archytas);
+            margin-top: 2px;
+            text-shadow: 0 0 15px rgba(212, 118, 58, 0.2);
+        }
+
+        .gauge-note {
+            font-size: 9px;
+            color: rgba(212, 118, 58, 0.35);
+            font-style: italic;
+            margin-top: 2px;
+        }
+
+        #archytas-legend {
+            position: absolute;
+            right: 22px;
+            top: 340px;
+            font-size: 9px;
+            text-align: right;
+        }
+
+        .al-row {
+            margin-bottom: 3px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .al-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .al-label {
+            font-family: 'Cinzel', serif;
+            font-size: 8px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        #delos-pulse {
+            position: absolute;
+            bottom: 20px;
+            right: 22px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        #delos-pulse.on {
+            opacity: 1;
+        }
+
+        .dp-l {
+            font-family: 'Cinzel', serif;
+            font-size: 11px;
+            letter-spacing: 4px;
+            color: var(--delos);
+            animation: dp 2s ease-in-out infinite;
+        }
+
+        .dp-v {
+            font-size: 20px;
+            font-weight: 300;
+            color: var(--delos);
+        }
+
+        .dp-type {
+            font-size: 9px;
+            color: rgba(232, 197, 71, 0.5);
+            font-style: italic;
+            margin-top: 2px;
+        }
+
+        @keyframes dp {
+
+            0%,
+            100% {
+                opacity: .7
+            }
+
+            50% {
+                opacity: 1
+            }
+        }
+
+        #hints {
+            position: absolute;
+            bottom: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Cinzel', serif;
+            font-size: 7px;
+            letter-spacing: 1px;
+            color: rgba(240, 230, 208, 0.13);
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        kbd {
+            display: inline-block;
+            padding: 1px 3px;
+            border: 1px solid rgba(240, 230, 208, 0.12);
+            border-radius: 1px;
+            margin: 0 1px;
+            font-family: 'Cinzel', serif;
+            font-size: 7px;
+        }
+
+        #tbar {
+            position: absolute;
+            left: 22px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 180px;
+            background: rgba(201, 168, 76, 0.06);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        #tfill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: linear-gradient(to top, var(--manus), var(--cubit), var(--archytas), var(--royal));
+            transition: height 0.1s;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="c"></canvas>
+
+    <div id="ui">
+        <div class="hdr">
+            <h1>Penman Geoglyph</h1>
+            <div class="sub">Archytas Corrected · Cubit Platform · HERO 93</div>
+            <div class="correction">∛2 is non-constructible algebraic, not transcendental</div>
+        </div>
+
+        <div id="mode-badge" class="penman">✦ PENMAN MODE ✦</div>
+
+        <div id="ctrls">
+            <div class="cr">
+                <span class="cl">Slope</span>
+                <button class="b on" data-s="10" onclick="setSlope(10)">10° Copper</button>
+                <button class="b" data-s="15" onclick="setSlope(15)">15° Italic</button>
+                <button class="b" data-s="30" onclick="setSlope(30)">30° Royal</button>
+            </div>
+            <div class="cr">
+                <span class="cl">Archytas</span>
+                <button class="b on" id="b-cylinder" onclick="T('cylinder')">Cylinder</button>
+                <button class="b on" id="b-cone" onclick="T('cone')">Cone</button>
+                <button class="b on" id="b-torus" onclick="T('torus')">Torus</button>
+                <button class="b on" id="b-intersect" onclick="T('intersect')">Intersect</button>
+            </div>
+            <div class="cr">
+                <span class="cl">Layers</span>
+                <button class="b on" id="b-arm" onclick="T('arm')">Platform</button>
+                <button class="b on" id="b-arcs" onclick="T('arcs')">Arcs</button>
+                <button class="b on" id="b-delos" onclick="T('delos')">Delos</button>
+                <button class="b" id="b-golden" onclick="T('golden')">φ-Spiral</button>
+            </div>
+            <div class="cr">
+                <span class="cl">Render</span>
+                <button class="b" id="b-cubes" onclick="T('cubes')">Cubes</button>
+                <button class="b" id="b-halo" onclick="T('halo')">Hex Halo</button>
+                <button class="b" id="b-fence" onclick="T('fence')">30° Fence</button>
+                <button class="b" id="b-n93" onclick="T('n93')">93-Node</button>
+            </div>
+            <div class="cr">
+                <span class="cl">Mode</span>
+                <button class="b on" id="b-anim" onclick="T('anim')">Animate</button>
+                <button class="b on" id="b-ink" onclick="T('ink')">Torsion Ink</button>
+                <button class="b" id="b-rev" onclick="toggleRev()">☽ Demiurge</button>
+                <button class="b" id="b-chime" onclick="playChime()">♪ 432Hz</button>
+            </div>
+        </div>
+
+        <div id="info">
+            <div class="ir"><span class="ik">Slope (φ)</span><span class="iv" id="v-sl">10° Copperplate</span></div>
+            <div class="ir"><span class="ik">Tilt (θ)</span><span class="iv">3° Master Key</span></div>
+            <div class="ir"><span class="ik">Radius</span><span class="iv" id="v-r">5.000</span></div>
+            <div class="ir"><span class="ik">Volume</span><span class="iv" id="v-v">125.0</span></div>
+            <div class="ir"><span class="ik">Forearm</span><span class="iv" id="v-fv">—</span></div>
+            <div class="ir"><span class="ik">∛2 (Algebraic)</span><span class="iv"
+                    style="color:rgba(212,118,58,.7)">1.25992</span></div>
+            <div class="ir"><span class="ik">Delos Target</span><span class="iv"
+                    style="color:rgba(232,197,71,.6)">6.29961</span></div>
+            <div class="ir"><span class="ik">Loops</span><span class="iv" id="v-l">0</span></div>
+            <div class="ir"><span class="ik">13-Mod</span><span class="iv" id="v-13">0.000</span></div>
+            <div class="ir"><span class="ik">Torsion</span><span class="iv" id="v-tor">0.000</span></div>
+            <div class="ir"><span class="ik">Flow</span><span class="iv" id="v-flow">Penman →</span></div>
+        </div>
+
+        <div id="alignment-gauge">
+            <div class="gauge-title">Delos Alignment</div>
+            <div class="gauge-bar">
+                <div class="gauge-fill" id="gauge-fill" style="width:0%"></div>
+            </div>
+            <div class="gauge-pct" id="gauge-pct">0.0%</div>
+            <div class="gauge-note">Distance to Archytas intersection point</div>
+        </div>
+
+        <div id="archytas-legend">
+            <div class="al-row">
+                <span class="al-label" style="color:rgba(58,140,180,0.7)">Cylinder (Forearm rotation)</span>
+                <span class="al-dot" style="background:rgba(58,140,180,0.5)"></span>
+            </div>
+            <div class="al-row">
+                <span class="al-label" style="color:rgba(160,80,200,0.7)">Cone (Hand reach)</span>
+                <span class="al-dot" style="background:rgba(160,80,200,0.5)"></span>
+            </div>
+            <div class="al-row">
+                <span class="al-label" style="color:rgba(212,118,58,0.7)">Torus (Wrist pivot)</span>
+                <span class="al-dot" style="background:rgba(212,118,58,0.5)"></span>
+            </div>
+            <div class="al-row">
+                <span class="al-label" style="color:rgba(232,197,71,0.8)">Intersection = ∛2</span>
+                <span class="al-dot" style="background:rgba(232,197,71,0.7)"></span>
+            </div>
+        </div>
+
+        <div id="delos-pulse">
+            <div class="dp-l">DELIAN RESONANCE</div>
+            <div class="dp-v">5 × ∛2 ≈ 6.29961</div>
+            <div class="dp-type">Non-constructible Algebraic · Root of x³ − 2 = 0</div>
+        </div>
+
+        <div id="tbar">
+            <div id="tfill" style="height:0%"></div>
+        </div>
+
+        <div id="hints">
+            <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> Slopes
+            <kbd>F</kbd> Platform <kbd>A</kbd> Arcs <kbd>D</kbd> Delos
+            <kbd>Y</kbd> Cylinder <kbd>O</kbd> Cone <kbd>U</kbd> Torus <kbd>I</kbd> Intersect
+            <kbd>G</kbd> Golden <kbd>H</kbd> Halo <kbd>P</kbd> Fence <kbd>N</kbd> 93-Node
+            <kbd>R</kbd> Demiurge <kbd>T</kbd> Torsion <kbd>Space</kbd> Pause <kbd>M</kbd> Chime
+        </div>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════
+        // PENMAN GEOGLYPH — ARCHYTAS CORRECTED
+        //
+        // Mathematical corrections:
+        // 1. ∛2 is ALGEBRAIC (root of x³-2=0), NOT transcendental
+        // 2. It is non-constructible by compass/straightedge (Wantzel 1837)
+        // 3. Archytas solved it via intersection of 3 surfaces in 3D:
+        //    - Cylinder (rotation of forearm)
+        //    - Cone (reach of hand)
+        //    - Torus (wrist/elbow pivot sweep)
+        // 4. The 10-24-26 triple = scaled 5-12-13 (structural mnemonic)
+        // 5. Nautilus 93-node = biological symmetry (not fixed count)
+        // ═══════════════════════════════════════════════════════════════
+
+        const cv = document.getElementById('c');
+        const X = cv.getContext('2d');
+
+        const D = Math.PI / 180, PI2 = Math.PI * 2, PI = Math.PI;
+        const PHI = (1 + Math.sqrt(5)) / 2;
+        const CBRT2 = Math.pow(2, 1 / 3);          // 1.25992... (ALGEBRAIC)
+        const DR = 5 * CBRT2;                     // 6.29961... (Delos target)
+
+        const ARCH = {
+            cylinderR: 3.0,
+            coneAngle: 45,
+            torusR: 4.0,
+            torusr: 1.5,
+        };
+
+        const S = {
+            slope: 10, tilt: 3,
+            time: 0, loops: 0, radius: 5,
+            trail: [], maxTrail: 1400,
+            delosActive: false, chimeCd: 0,
+            torsionVal: 0, distTraveled: 0,
+            delosAlignment: 0,
+            cylinder: true, cone: true, torus: true, intersect: true,
+            arm: true, arcs: true, delos: true, golden: false,
+            cubes: false, halo: false, fence: false, n93: false,
+            ink: true, anim: true, rev: false,
+        };
+
+        const SL = {
+            10: { n: 'Copperplate', c: [74, 124, 89] },
+            15: { n: 'Italic', c: [46, 107, 138] },
+            30: { n: 'Royal', c: [123, 45, 142] },
+        };
+
+        function resize() { cv.width = innerWidth; cv.height = innerHeight; }
+        addEventListener('resize', resize); resize();
+
+        let actx = null;
+        function initA() { if (!actx) actx = new (AudioContext || webkitAudioContext)() }
+        function playChime() {
+            initA(); if (S.chimeCd > 0) return; S.chimeCd = 2.5;
+            const now = actx.currentTime;
+            [432, 864, 1296, 432 * PHI].forEach((f, i) => {
+                const o = actx.createOscillator(), g = actx.createGain();
+                o.type = 'sine'; o.frequency.value = f;
+                g.gain.setValueAtTime([.2, .06, .03, .02][i], now);
+                g.gain.exponentialRampToValueAtTime(.001, now + .8);
+                o.connect(g); g.connect(actx.destination); o.start(now); o.stop(now + .85);
+            });
+        }
+
+        function proj(x, y, z) {
+            const W = cv.width / 2, H = cv.height / 2, sc = Math.min(cv.width, cv.height) * 0.042;
+            const ca = (S.rev ? 20 : 15) * D;
+            const yr = y * Math.cos(ca) - z * Math.sin(ca);
+            const zr = y * Math.sin(ca) + z * Math.cos(ca);
+            const p = 1 + zr * 0.016;
+            return { x: W + x * sc / p, y: H - yr * sc / p, z: zr, s: sc / p };
+        }
+
+        function fvec(phi, theta) {
+            const p = phi * D, t = theta * D;
+            return [Math.cos(p) * Math.cos(t), Math.sin(p), Math.cos(p) * Math.sin(t)];
+        }
+        function rotY(x, y, z, a) { const c = Math.cos(a), s = Math.sin(a); return [x * c + z * s, y, -x * s + z * c] }
+        function rotX(x, y, z, a) { const c = Math.cos(a), s = Math.sin(a); return [x, y * c - z * s, y * s + z * c] }
+
+        function circ(ox, oy, oz, r, seg, col, al, lw) {
+            X.beginPath(); X.strokeStyle = col; X.globalAlpha = al; X.lineWidth = lw;
+            for (let i = 0; i <= seg; i++) { const a = (i / seg) * PI2, p = proj(ox + r * Math.cos(a), oy + r * Math.sin(a), oz); i === 0 ? X.moveTo(p.x, p.y) : X.lineTo(p.x, p.y); }
+            X.stroke(); X.globalAlpha = 1;
+        }
+        function ln(x1, y1, z1, x2, y2, z2, col, al, lw) {
+            const a = proj(x1, y1, z1), b = proj(x2, y2, z2);
+            X.beginPath(); X.strokeStyle = col; X.globalAlpha = al; X.lineWidth = lw;
+            X.moveTo(a.x, a.y); X.lineTo(b.x, b.y); X.stroke(); X.globalAlpha = 1;
+        }
+        function dot(x, y, z, col, al, sz) {
+            const p = proj(x, y, z); X.beginPath(); X.fillStyle = col; X.globalAlpha = al;
+            X.arc(p.x, p.y, sz, 0, PI2); X.fill(); X.globalAlpha = 1;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // ARCHYTAS SOLIDS
+        // ═══════════════════════════════════════════════════════════════
+
+        function drawArchytasCylinder() {
+            if (!S.cylinder) return;
+            const R = ARCH.cylinderR, h = 8, segs = 24, rings = 6;
+            const col = 'rgba(58,140,180,';
+            for (let i = 0; i < segs; i++) {
+                const a = (i / segs) * PI2;
+                const x = R * Math.cos(a), z = R * Math.sin(a);
+                ln(x, -h / 2, z, x, h / 2, z, col + '0.12)', 1, 0.5);
+            }
+            for (let j = 0; j <= rings; j++) {
+                const y = -h / 2 + (j / rings) * h;
+                const alpha = 0.08 + (j === 0 || j === rings ? 0.08 : 0);
+                circ(0, y, 0, R, segs, col + alpha + ')', 1, 0.6);
+            }
+            const lp = proj(R + 0.5, h / 2 + 0.5, 0);
+            X.font = '8px Cinzel'; X.fillStyle = 'rgba(58,140,180,0.5)';
+            X.fillText('CYLINDER', lp.x, lp.y);
+            X.font = '7px Cormorant Garamond'; X.fillStyle = 'rgba(58,140,180,0.3)';
+            X.fillText('(forearm rotation)', lp.x, lp.y + 11);
+        }
+
+        function drawArchytasCone() {
+            if (!S.cone) return;
+            const halfAngle = ARCH.coneAngle * D, h = 7, segs = 24;
+            const col = 'rgba(160,80,200,';
+            for (let i = 0; i < segs; i++) {
+                const a = (i / segs) * PI2;
+                const r = h * Math.tan(halfAngle);
+                const bx = r * Math.cos(a), bz = r * Math.sin(a);
+                ln(0, 0, 0, bx, h, bz, col + '0.08)', 1, 0.5);
+            }
+            for (let j = 1; j <= 4; j++) {
+                const y = (j / 4) * h;
+                const r = y * Math.tan(halfAngle);
+                circ(0, y, 0, r, segs, col + '0.1)', 1, 0.5);
+            }
+            const lp = proj(-h * Math.tan(halfAngle) - 0.5, h * 0.6, 0);
+            X.font = '8px Cinzel'; X.fillStyle = 'rgba(160,80,200,0.5)';
+            X.fillText('CONE', lp.x - 30, lp.y);
+            X.font = '7px Cormorant Garamond'; X.fillStyle = 'rgba(160,80,200,0.3)';
+            X.fillText('(hand reach)', lp.x - 30, lp.y + 11);
+        }
+
+        function drawArchytasTorus() {
+            if (!S.torus) return;
+            const R = ARCH.torusR, r = ARCH.torusr;
+            const col = 'rgba(212,118,58,';
+            const uSegs = 32, vSegs = 16;
+            for (let v = 0; v < vSegs; v++) {
+                const vAngle = (v / vSegs) * PI2;
+                X.beginPath(); X.strokeStyle = col + '0.1)'; X.lineWidth = 0.5;
+                let first = true;
+                for (let u = 0; u <= uSegs; u++) {
+                    const uAngle = (u / uSegs) * PI2;
+                    const x = (R + r * Math.cos(vAngle)) * Math.cos(uAngle);
+                    const y = r * Math.sin(vAngle);
+                    const z = (R + r * Math.cos(vAngle)) * Math.sin(uAngle);
+                    const p = proj(x, y, z);
+                    first ? (X.moveTo(p.x, p.y), first = false) : X.lineTo(p.x, p.y);
+                } X.stroke();
+            }
+            for (let u = 0; u < uSegs; u += 4) {
+                const uAngle = (u / uSegs) * PI2;
+                X.beginPath(); X.strokeStyle = col + '0.08)'; X.lineWidth = 0.4;
+                let first = true;
+                for (let v = 0; v <= vSegs; v++) {
+                    const vAngle = (v / vSegs) * PI2;
+                    const x = (R + r * Math.cos(vAngle)) * Math.cos(uAngle);
+                    const y = r * Math.sin(vAngle);
+                    const z = (R + r * Math.cos(vAngle)) * Math.sin(uAngle);
+                    const p = proj(x, y, z);
+                    first ? (X.moveTo(p.x, p.y), first = false) : X.lineTo(p.x, p.y);
+                } X.stroke();
+            }
+            const lp = proj(R + r + 0.5, -r - 0.5, 0);
+            X.font = '8px Cinzel'; X.fillStyle = 'rgba(212,118,58,0.5)';
+            X.fillText('TORUS', lp.x, lp.y);
+            X.font = '7px Cormorant Garamond'; X.fillStyle = 'rgba(212,118,58,0.3)';
+            X.fillText('(wrist pivot)', lp.x, lp.y + 11);
+        }
+
+        function drawArchytasIntersection() {
+            if (!S.intersect) return;
+            const pulse = 0.5 + 0.5 * Math.sin(S.time * 3);
+            const theta = S.time * 0.3;
+            const ix = CBRT2 * ARCH.cylinderR * 0.5 * Math.cos(theta);
+            const iy = CBRT2 * ARCH.torusr * 0.8;
+            const iz = CBRT2 * ARCH.cylinderR * 0.5 * Math.sin(theta);
+            const p = proj(ix, iy, iz);
+            const gsz = 12 + 6 * pulse;
+            const gr = X.createRadialGradient(p.x, p.y, 0, p.x, p.y, gsz);
+            gr.addColorStop(0, `rgba(232,197,71,${0.4 + 0.4 * pulse})`);
+            gr.addColorStop(0.5, `rgba(212,118,58,${0.15 + 0.1 * pulse})`);
+            gr.addColorStop(1, 'rgba(0,0,0,0)');
+            X.fillStyle = gr;
+            X.fillRect(p.x - gsz - 2, p.y - gsz - 2, gsz * 2 + 4, gsz * 2 + 4);
+            X.beginPath(); X.fillStyle = `rgba(232,197,71,${0.6 + 0.4 * pulse})`;
+            X.arc(p.x, p.y, 3, 0, PI2); X.fill();
+            X.font = '9px Cinzel'; X.fillStyle = `rgba(232,197,71,${0.5 + 0.3 * pulse})`;
+            X.fillText('∛2 = 1.2599…', p.x + 8, p.y - 5);
+            X.font = '7px Cormorant Garamond'; X.fillStyle = 'rgba(232,197,71,0.35)';
+            X.fillText('Archytas intersection', p.x + 8, p.y + 6);
+            X.fillText('(algebraic, non-constructible)', p.x + 8, p.y + 16);
+            ln(ix, iy, iz, ARCH.cylinderR * Math.cos(theta), iy, ARCH.cylinderR * Math.sin(theta),
+                'rgba(58,140,180,0.15)', 1, 0.5);
+            ln(ix, iy, iz, 0, 0, 0, 'rgba(160,80,200,0.1)', 1, 0.5);
+            ln(ix, iy, iz, ARCH.torusR * Math.cos(theta + 0.3), 0, ARCH.torusR * Math.sin(theta + 0.3),
+                'rgba(212,118,58,0.12)', 1, 0.5);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // STANDARD LAYERS
+        // ═══════════════════════════════════════════════════════════════
+
+        function drawVoid() {
+            const W = cv.width, H = cv.height, CX = W / 2, CY = H / 2;
+            const g = X.createRadialGradient(CX, CY, 0, CX, CY, W * 0.65);
+            if (S.rev) {
+                g.addColorStop(0, 'rgba(20,8,45,1)'); g.addColorStop(0.5, 'rgba(10,4,25,1)'); g.addColorStop(1, 'rgba(4,2,8,1)');
+            } else {
+                g.addColorStop(0, 'rgba(10,10,18,1)'); g.addColorStop(0.5, 'rgba(7,7,12,1)'); g.addColorStop(1, 'rgba(4,4,7,1)');
+            }
+            X.fillStyle = g; X.fillRect(0, 0, W, H);
+            X.strokeStyle = 'rgba(201,168,76,0.018)'; X.lineWidth = 0.5;
+            for (let i = 0; i < 12; i++) { const a = (i / 12) * PI2, r = Math.min(W, H) * .45; X.beginPath(); X.moveTo(CX, CY); X.lineTo(CX + r * Math.cos(a), CY + r * Math.sin(a)); X.stroke(); }
+            const sc = Math.min(W, H) * 0.042;
+            for (let r = 1; r <= 10; r++) { X.beginPath(); X.arc(CX, CY, r * sc, 0, PI2); X.stroke(); }
+        }
+
+        function drawArcs() {
+            const m13 = Math.abs(Math.sin(S.loops * PI / 13));
+            [[5, '74,124,89', 'MANUS (5)'], [6, '46,107,138', 'CUBIT (6)'], [7, '123,45,142', 'ROYAL (7)']].forEach(([r, c, l]) => {
+                circ(0, 0, 0, r, 80, `rgba(${c},${0.2 + 0.35 * m13})`, 1, 1 + m13 * 0.5);
+                const p = proj(r + 0.3, 0.4, 0); X.font = '8px Cinzel'; X.fillStyle = `rgba(${c},0.4)`; X.fillText(l, p.x, p.y);
+            });
+        }
+
+        function drawDelos() {
+            const pulse = .5 + .5 * Math.sin(S.time * 3);
+            circ(0, 0, 0, DR, 120, `rgba(232,197,71,${.3 + .4 * pulse})`, 1, 1.5 + pulse);
+            if (S.delosActive) { circ(0, 0, 0, DR, 120, `rgba(232,197,71,${pulse * .25})`, 1, 3.5); }
+            const p = proj(DR + .4, -.7, 0); X.font = '9px Cinzel'; X.fillStyle = `rgba(232,197,71,${.3 + .4 * pulse})`;
+            X.fillText(`5×∛2 ≈ ${DR.toFixed(4)}`, p.x, p.y);
+        }
+
+        function drawArm() {
+            const fv = fvec(S.slope, S.tilt), L = 6;
+            const ex = -fv[0] * L, ey = -fv[1] * L, ez = -fv[2] * L;
+            const acol = S.rev ? 'rgba(90,40,180,' : 'rgba(201,168,76,';
+            ln(0, 0, 0, ex, ey, ez, acol + '0.55)', 1, 2);
+            dot(ex, ey, ez, S.rev ? '#5a28b4' : '#c9a84c', .8, 4);
+            dot(0, 0, 0, S.rev ? '#8040e0' : '#e8c547', 1, 3);
+            const mx = ex * .5, my = ey * .5, mz = ez * .5;
+            X.beginPath(); X.strokeStyle = acol + '0.15)'; X.lineWidth = 1;
+            for (let i = 0; i <= 3; i++) { const a = S.time * .3 + (i / 3) * PI2; const p = proj(mx + 1.3 * Math.cos(a), my + 1.3 * Math.sin(a), mz); i === 0 ? X.moveTo(p.x, p.y) : X.lineTo(p.x, p.y); } X.stroke();
+            circ(mx, my, mz, 1.3, 32, acol + '0.08)', 1, .6);
+        }
+
+        function drawGolden() {
+            const fv = fvec(S.slope, S.tilt); const ox = -fv[0] * 6, oy = -fv[1] * 6, oz = -fv[2] * 6;
+            const growth = Math.log(PHI) / (PI / 2); const col = S.rev ? '90,40,180' : '201,168,76';
+            X.beginPath(); X.strokeStyle = `rgba(${col},0.12)`; X.lineWidth = 0.8; let first = true;
+            for (let i = 0; i <= 500; i++) {
+                const a = (i / 500) * 7 * PI; const r = .3 * Math.exp(growth * a); if (r > 14) break;
+                const p = proj(ox + r * Math.cos(-a + S.time * .1), oy + r * Math.sin(-a + S.time * .1), oz + a * .012);
+                first ? (X.moveTo(p.x, p.y), first = false) : X.lineTo(p.x, p.y);
+            } X.stroke();
+        }
+
+        function drawCubes() {
+            [{ s: 2.2, c: '74,124,89', d: 1, ox: -4.5, l: 'V=125 (5³)' },
+            { s: 2.77, c: '232,197,71', d: -1, ox: 4.5, l: 'V=250 (2·5³)' }].forEach(cube => {
+                const rot = S.time * .35 * cube.d; const vs = [];
+                for (let dx of [-1, 1]) for (let dy of [-1, 1]) for (let dz of [-1, 1]) {
+                    let [x, y, z] = [dx * cube.s * .5, dy * cube.s * .5, dz * cube.s * .5];
+                    [x, y, z] = rotY(x, y, z, rot);[x, y, z] = rotX(x, y, z, rot * .3); vs.push(proj(x + cube.ox, y + 5.5, z));
+                }
+                const pulse = cube.d === -1 ? (.35 + .2 * Math.abs(Math.sin(S.time))) : .3;
+                X.strokeStyle = `rgba(${cube.c},${pulse})`; X.lineWidth = 1;
+                [[0, 1], [0, 2], [0, 4], [1, 3], [1, 5], [2, 3], [2, 6], [3, 7], [4, 5], [4, 6], [5, 7], [6, 7]].forEach(([a, b]) => {
+                    X.beginPath(); X.moveTo(vs[a].x, vs[a].y); X.lineTo(vs[b].x, vs[b].y); X.stroke();
+                });
+                const p = proj(cube.ox, 3.5, 0); X.font = '9px Cinzel'; X.fillStyle = `rgba(${cube.c},.45)`; X.fillText(cube.l, p.x - 20, p.y);
+            });
+        }
+
+        function drawHalo() {
+            const pulse = .5 + .5 * Math.sin(S.time * 2.5); const sz = 1 + .3 * pulse; const al = .1 + .15 * pulse;
+            const col = S.rev ? '90,40,180' : '201,168,76';
+            X.beginPath(); X.strokeStyle = `rgba(${col},${al})`; X.lineWidth = 1;
+            for (let i = 0; i <= 6; i++) { const a = (i / 6) * PI2 + S.time * .2; const p = proj(sz * Math.cos(a), sz * Math.sin(a), 0); i === 0 ? X.moveTo(p.x, p.y) : X.lineTo(p.x, p.y); } X.stroke();
+        }
+
+        function drawFence() {
+            if (!S.fence) return;
+            const ba = 30 * D; X.globalAlpha = S.rev ? .12 : .07;
+            for (let i = 0; i < 18; i++) {
+                const d = i * 1.5; const zd = d * Math.sin(ba); const xp = d * Math.cos(ba) - 13;
+                const age = 1 - (i / 18); const col = S.rev ? `rgba(90,40,180,${age * .25})` : `rgba(201,168,76,${age * .18})`;
+                X.strokeStyle = col; X.lineWidth = Math.max(.4, age * 1.2);
+                const p1 = proj(xp, -1, zd), p2 = proj(xp, 1, zd);
+                X.beginPath(); X.moveTo(p1.x, p1.y); X.lineTo(p2.x, p2.y); X.stroke();
+                if (i < 17) {
+                    const nd = (i + 1) * 1.5; const nzd = nd * Math.sin(ba); const nxp = nd * Math.cos(ba) - 13;
+                    const p3 = proj(nxp, .2, nzd), pm = proj(xp, .2, zd); X.beginPath(); X.moveTo(pm.x, pm.y); X.lineTo(p3.x, p3.y); X.stroke();
+                }
+            } X.globalAlpha = 1;
+        }
+
+        function draw93() {
+            X.globalAlpha = .1; const nr = 8;
+            for (let i = 0; i < 90; i++) {
+                const y = 1 - (i / 89) * 2; const rr = Math.sqrt(1 - y * y); const th = PHI * PI2 * i;
+                const p = proj(rr * Math.cos(th) * nr, y * nr, rr * Math.sin(th) * nr); X.beginPath();
+                X.fillStyle = S.rev ? 'rgba(90,40,180,.3)' : 'rgba(201,168,76,.25)'; X.arc(p.x, p.y, 1, 0, PI2); X.fill();
+            }
+            [[0, 0, 0], [0, nr * .8, 0], [0, -nr * .8, 0]].forEach(([hx, hy, hz]) => {
+                const p = proj(hx, hy, hz); X.beginPath(); X.fillStyle = 'rgba(232,197,71,.4)'; X.arc(p.x, p.y, 2.5, 0, PI2); X.fill();
+            });
+            for (let i = 0; i < 13; i++) { const a = (i / 13) * PI2 + S.time * .12; dot(2 * Math.cos(a), 2 * Math.sin(a), 0, 'rgba(201,168,76,.3)', .3, 1.2); }
+            X.globalAlpha = 1;
+        }
+
+        function drawTrail() {
+            if (S.trail.length < 2) return;
+            for (let i = 1; i < S.trail.length; i++) {
+                const t = S.trail[i], prev = S.trail[i - 1]; const age = i / S.trail.length;
+                const r = Math.sqrt(t[0] ** 2 + t[1] ** 2 + t[2] ** 2);
+                let tw = 1 + age * 2;
+                if (S.ink && i > 2) {
+                    const pp = S.trail[i - 2];
+                    const dx1 = t[0] - prev[0], dy1 = t[1] - prev[1], dz1 = t[2] - prev[2];
+                    const dx0 = prev[0] - pp[0], dy0 = prev[1] - pp[1], dz0 = prev[2] - pp[2];
+                    const cross = Math.sqrt((dy1 * dz0 - dz1 * dy0) ** 2 + (dz1 * dx0 - dx1 * dz0) ** 2 + (dx1 * dy0 - dy1 * dx0) ** 2);
+                    const mag = Math.sqrt(dx1 ** 2 + dy1 ** 2 + dz1 ** 2);
+                    const tv = mag > .001 ? cross / (mag * mag) : 0;
+                    tw = S.rev ? Math.max(.3, 3 - tv * 12) * age : (1 + tv * 6) * age;
+                }
+                let col;
+                if (S.rev) {
+                    if (r < 5.5) col = `rgba(50,20,100,${age * .7})`;
+                    else if (r < 6.15) col = `rgba(80,40,160,${age * .8})`;
+                    else if (Math.abs(r - DR) < .2) col = `rgba(232,197,71,${age})`;
+                    else col = `rgba(140,80,220,${age * .7})`;
+                } else {
+                    if (r < 5.5) col = `rgba(74,124,89,${age * .8})`;
+                    else if (r < 6.15) col = `rgba(46,107,138,${age * .8})`;
+                    else if (Math.abs(r - DR) < .2) col = `rgba(232,197,71,${age})`;
+                    else col = `rgba(123,45,142,${age * .8})`;
+                }
+                const a = proj(prev[0], prev[1], prev[2]), b = proj(t[0], t[1], t[2]);
+                X.beginPath(); X.strokeStyle = col; X.lineWidth = Math.max(.3, tw); X.lineCap = 'round';
+                X.moveTo(a.x, a.y); X.lineTo(b.x, b.y); X.stroke();
+            }
+            if (S.trail.length) {
+                const tip = S.trail[S.trail.length - 1]; const p = proj(tip[0], tip[1], tip[2]);
+                const r = Math.sqrt(tip[0] ** 2 + tip[1] ** 2 + tip[2] ** 2); const near = Math.abs(r - DR) < .3;
+                const gsz = near ? 22 : (S.rev ? 15 : 9);
+                const gr = X.createRadialGradient(p.x, p.y, 0, p.x, p.y, gsz);
+                if (S.rev) { gr.addColorStop(0, near ? 'rgba(232,197,71,.7)' : 'rgba(140,80,220,.5)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); }
+                else { gr.addColorStop(0, near ? 'rgba(232,197,71,.6)' : 'rgba(240,230,208,.4)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); }
+                X.fillStyle = gr; X.fillRect(p.x - gsz - 3, p.y - gsz - 3, gsz * 2 + 6, gsz * 2 + 6);
+            }
+        }
+
+        function loopPt(t, r, phi, theta, zOff) {
+            const th = theta * D, p = phi * D;
+            let x = r * Math.cos(-t), y = r * Math.sin(-t), z = zOff;
+            if (S.fence) { z += S.distTraveled * Math.tan(30 * D) * 0.015; }
+            const xr = x * Math.cos(th) - z * Math.sin(th);
+            const zr = x * Math.sin(th) + z * Math.cos(th);
+            const yr2 = y * Math.cos(p * .1) - zr * Math.sin(p * .1);
+            const zr2 = y * Math.sin(p * .1) + zr * Math.cos(p * .1);
+            return [xr, yr2, zr2];
+        }
+
+        function archytasModulatedPt(t, baseR, phi, theta, zOff) {
+            const pt = loopPt(t, baseR, phi, theta, zOff);
+            if (S.slope === 30 && S.intersect) {
+                const torusOsc = ARCH.torusr * 0.15 * Math.sin(t * 2.3);
+                const cylClamp = Math.min(1, ARCH.cylinderR / (baseR + 0.001));
+                const archFactor = 0.1 * Math.sin(t * 1.7) * cylClamp;
+                return [
+                    pt[0] * (1 + archFactor) + torusOsc * Math.cos(t),
+                    pt[1] * (1 + archFactor * 0.5),
+                    pt[2] + torusOsc * 0.3
+                ];
+            }
+            return pt;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // MAIN LOOP
+        // ═══════════════════════════════════════════════════════════════
+
+        function frame() {
+            const dt = 0.016;
+            if (S.anim) {
+                S.time += dt * (S.rev ? -1 : 1);
+                const tgtR = S.slope === 10 ? 5 : S.slope === 15 ? 6 : 7;
+                S.radius += (tgtR - S.radius) * 0.012;
+                const spd = 1.2, t = S.time * spd;
+                const zOff = S.loops * Math.sin(S.tilt * D) * S.radius * .1;
+                const dynR = 5 + (S.radius - 5) * (.5 + .5 * Math.sin(t * .3));
+                const pt = archytasModulatedPt(t, dynR, S.slope, S.tilt, zOff);
+                if (S.trail.length > 0) {
+                    const prev = S.trail[S.trail.length - 1];
+                    S.distTraveled += Math.sqrt((pt[0] - prev[0]) ** 2 + (pt[1] - prev[1]) ** 2 + (pt[2] - prev[2]) ** 2);
+                }
+                S.trail.push(pt); if (S.trail.length > S.maxTrail) S.trail.shift();
+                S.loops = Math.abs(S.time * spd) / PI2;
+                if (S.trail.length > 3) {
+                    const n = S.trail.length;
+                    const a = S.trail[n - 1], b = S.trail[n - 2], c = S.trail[n - 3];
+                    const dx1 = a[0] - b[0], dy1 = a[1] - b[1], dz1 = a[2] - b[2];
+                    const dx0 = b[0] - c[0], dy0 = b[1] - c[1], dz0 = b[2] - c[2];
+                    const cross = Math.sqrt((dy1 * dz0 - dz1 * dy0) ** 2 + (dz1 * dx0 - dx1 * dz0) ** 2 + (dx1 * dy0 - dy1 * dx0) ** 2);
+                    const mag = Math.sqrt(dx1 ** 2 + dy1 ** 2 + dz1 ** 2);
+                    S.torsionVal = mag > .001 ? Math.min(1, cross / (mag * mag) * 5) : 0;
+                }
+                const cr = Math.sqrt(pt[0] ** 2 + pt[1] ** 2 + pt[2] ** 2);
+                const maxDist = 2;
+                const dist = Math.abs(cr - DR);
+                S.delosAlignment = Math.max(0, (1 - dist / maxDist) * 100);
+                S.delosActive = dist < 0.3 && S.delos;
+                if (S.delosActive && S.chimeCd <= 0 && actx) playChime();
+                if (S.chimeCd > 0) S.chimeCd -= dt;
+            }
+
+            drawVoid();
+            if (S.fence) drawFence();
+            if (S.n93) draw93();
+            drawArchytasTorus();
+            drawArchytasCone();
+            drawArchytasCylinder();
+            drawArchytasIntersection();
+            if (S.golden) drawGolden();
+            if (S.arcs) drawArcs();
+            if (S.delos) drawDelos();
+            if (S.cubes) drawCubes();
+            if (S.arm) drawArm();
+            if (S.halo) drawHalo();
+            drawTrail();
+
+            const sd = SL[S.slope], fv = fvec(S.slope, S.tilt);
+            document.getElementById('v-sl').textContent = `${S.slope}° ${sd.n}`;
+            document.getElementById('v-r').textContent = S.radius.toFixed(3);
+            document.getElementById('v-v').textContent = Math.pow(S.radius, 3).toFixed(1);
+            document.getElementById('v-fv').textContent = `[${fv.map(v => v.toFixed(3)).join(', ')}]`;
+            document.getElementById('v-l').textContent = S.loops.toFixed(1);
+            document.getElementById('v-13').textContent = Math.abs(Math.sin(S.loops * PI / 13)).toFixed(3);
+            document.getElementById('v-tor').textContent = (S.torsionVal || 0).toFixed(3);
+            document.getElementById('v-flow').textContent = S.rev ? '← Demiurge' : 'Penman →';
+            document.getElementById('gauge-fill').style.width = S.delosAlignment + '%';
+            document.getElementById('gauge-pct').textContent = S.delosAlignment.toFixed(1) + '%';
+            document.getElementById('gauge-pct').style.color =
+                S.delosAlignment > 90 ? '#e8c547' : S.delosAlignment > 60 ? '#d4763a' : '#c9a84c';
+            document.getElementById('delos-pulse').classList.toggle('on', S.delosActive);
+            document.getElementById('tfill').style.height = Math.min(100, (S.torsionVal || 0) * 100) + '%';
+            const badge = document.getElementById('mode-badge');
+            badge.className = S.rev ? 'demiurge' : 'penman';
+            badge.textContent = S.rev ? '☽ DEMIURGE MODE ☽' : '✦ PENMAN MODE ✦';
+
+            requestAnimationFrame(frame);
+        }
+
+        function setSlope(d) {
+            S.slope = d; S.trail = []; S.distTraveled = 0;
+            document.querySelectorAll('[data-s]').forEach(b => b.classList.toggle('on', +b.dataset.s === d));
+        }
+        function T(k) { S[k] = !S[k]; const e = document.getElementById('b-' + k); if (e) e.classList.toggle('on'); }
+        function toggleRev() {
+            S.rev = !S.rev; S.trail = []; S.distTraveled = 0;
+            document.getElementById('b-rev').classList.toggle('on');
+        }
+
+        document.addEventListener('keydown', e => {
+            switch (e.key) {
+                case '1': setSlope(10); break; case '2': setSlope(15); break; case '3': setSlope(30); break;
+                case 'f': case 'F': T('arm'); break; case 'a': case 'A': T('arcs'); break;
+                case 'd': case 'D': T('delos'); break; case 'g': case 'G': T('golden'); break;
+                case 'h': case 'H': T('halo'); break; case 'c': case 'C': T('cubes'); break;
+                case 'p': case 'P': T('fence'); break; case 'n': case 'N': T('n93'); break;
+                case 'y': case 'Y': T('cylinder'); break; case 'o': case 'O': T('cone'); break;
+                case 'u': case 'U': T('torus'); break; case 'i': case 'I': T('intersect'); break;
+                case 'r': case 'R': toggleRev(); break; case 't': case 'T': T('ink'); break;
+                case 'm': case 'M': playChime(); break;
+                case ' ': e.preventDefault(); T('anim'); break;
+            }
+        });
+
+        document.addEventListener('click', initA, { once: true });
+        frame();
+    </script>
+</body>
+
+</html>

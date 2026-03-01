@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penman - The Sovereign Instrument v4 (Radiographic Calibration)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=Space+Mono&display=swap');
+
+        :root {
+            --void: #020205;
+            --gold: #c9a84c;
+            --ink: #1e3a8a;
+            --delos: #e8c547;
+            --bone: #e5e7eb;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--void);
+            color: #e0e0e0;
+            font-family: 'EB Garamond', serif;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            perspective: 2500px;
+            background: radial-gradient(circle at center, #0a0a25 0%, #020205 100%);
+        }
+
+        .world-base {
+            position: absolute;
+            transform-style: preserve-3d;
+            transition: transform 0.1s linear;
+        }
+
+        .arm-segment {
+            position: absolute;
+            height: 2px;
+            transform-origin: left center;
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
+        }
+
+        .seg-radius {
+            background: linear-gradient(90deg, #1e3a8a, #3b82f6);
+            height: 3px;
+        }
+
+        .seg-metacarpal {
+            background: #60a5fa;
+            opacity: 0.8;
+        }
+
+        .seg-proximal {
+            background: var(--bone);
+            opacity: 0.9;
+        }
+
+        .seg-middle {
+            background: var(--bone);
+            opacity: 0.7;
+        }
+
+        .seg-distal {
+            background: var(--bone);
+            opacity: 0.5;
+        }
+
+        .joint {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #fff;
+            border-radius: 50%;
+            transform: translate(-3px, -3px);
+            box-shadow: 0 0 15px #fff;
+            z-index: 50;
+        }
+
+        .stylus {
+            position: absolute;
+            width: 1px;
+            height: 50px;
+            background: #fff;
+            transform: rotateX(90deg);
+            transform-origin: top;
+            box-shadow: 0 0 20px #fff;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            width: 320px;
+            pointer-events: none;
+        }
+
+        .badge {
+            background: rgba(5, 5, 20, 0.95);
+            border: 1px solid #1e40af;
+            padding: 15px;
+            margin-bottom: 12px;
+            pointer-events: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+        }
+
+        .badge h1 {
+            font-family: 'Cinzel', serif;
+            color: #60a5fa;
+            font-weight: 900;
+            font-size: 22px;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+        }
+
+        .badge .sub {
+            font-size: 9px;
+            opacity: 0.6;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .metric-label {
+            color: #93c5fd;
+        }
+
+        .bar-bg {
+            width: 100%;
+            background: #111827;
+            height: 4px;
+            overflow: hidden;
+            margin: 6px 0;
+        }
+
+        .bar-fill {
+            background: #2563eb;
+            height: 100%;
+            transition: width 0.5s;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .grid-cell {
+            padding: 6px;
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            background: rgba(59, 130, 246, 0.05);
+            font-size: 9px;
+            text-transform: uppercase;
+            font-weight: bold;
+            color: #93c5fd;
+            font-family: 'Space Mono', monospace;
+            text-align: center;
+        }
+
+        .grid-cell .val {
+            color: #fff;
+        }
+
+        .btn {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 4px;
+            background: rgba(59, 130, 246, 0.06);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .btn:hover {
+            background: rgba(59, 130, 246, 0.15);
+        }
+
+        .btn-royal {
+            background: rgba(218, 165, 32, 0.08);
+            border-color: rgba(218, 165, 32, 0.3);
+            color: #fbbf24;
+        }
+
+        .btn-royal:hover {
+            background: rgba(218, 165, 32, 0.2);
+        }
+
+        .status-bar {
+            text-align: center;
+            padding: 8px;
+            border: 1px dashed rgba(59, 130, 246, 0.2);
+            background: rgba(0, 0, 0, 0.4);
+            font-size: 9px;
+            font-family: 'Space Mono', monospace;
+            color: #60a5fa;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .nautilus-halo {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px dashed rgba(59, 130, 246, 0.05);
+            animation: rotate-reverse 100s linear infinite;
+        }
+
+        @keyframes rotate-reverse {
+            from {
+                transform: rotate(360deg);
+            }
+
+            to {
+                transform: rotate(0deg);
+            }
+        }
+
+        .vitrification {
+            animation: crystal-flash 1s ease-out forwards;
+        }
+
+        @keyframes crystal-flash {
+            0% {
+                filter: brightness(1);
+            }
+
+            15% {
+                filter: brightness(8) contrast(4) drop-shadow(0 0 80px #fff);
+            }
+
+            100% {
+                filter: brightness(1.2);
+            }
+        }
+
+        .ink-stroke {
+            fill: none;
+            stroke: url(#inkGradient);
+            stroke-linecap: round;
+            stroke-width: 2;
+            filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.3));
+            opacity: 0.6;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="ui-overlay">
+        <div class="badge">
+            <h1>Manus V4</h1>
+            <p class="sub">Radiographic Proportions Calibration</p>
+        </div>
+
+        <div class="badge">
+            <div class="metric-row">
+                <span class="metric-label">Anatomic Alignment</span>
+                <span id="alignment-pct" style="color:#fff">0.00%</span>
+            </div>
+            <div class="bar-bg">
+                <div id="alignment-bar" class="bar-fill" style="width: 0%"></div>
+            </div>
+            <div class="grid-2" style="margin-top: 8px;">
+                <div class="grid-cell">Radius: <span class="val">Forearm</span></div>
+                <div class="grid-cell">Ratios: <span class="val">2:1.5:1</span></div>
+            </div>
+        </div>
+
+        <div class="badge">
+            <button class="btn" onclick="setHand('copperplate')">
+                <span>METACARPAL (5th)</span> <span>Φ-Ratio</span>
+            </button>
+            <button class="btn" onclick="setHand('italic')">
+                <span>PHALANGEAL (MCP)</span> <span>1.3 Ratio</span>
+            </button>
+            <button class="btn btn-royal" onclick="setHand('royal')">
+                <span>ROYAL CUBIT</span> <span>∛2 Resonance</span>
+            </button>
+        </div>
+
+        <div class="status-bar" id="status-display">
+            <span id="status-text">Calibrating Hand Morphology...</span>
+        </div>
+    </div>
+
+    <div id="canvas-container">
+        <svg style="position:absolute;width:0;height:0;overflow:hidden;">
+            <defs>
+                <linearGradient id="inkGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#1e3a8a" />
+                    <stop offset="50%" stop-color="#3b82f6" />
+                    <stop offset="100%" stop-color="#fff" />
+                </linearGradient>
+            </defs>
+        </svg>
+
+        <div id="world" class="world-base">
+            <div id="halo-93" class="nautilus-halo"
+                style="width:1400px;height:1400px;margin-left:-700px;margin-top:-700px;"></div>
+
+            <div id="kinematic-chain" class="absolute" style="transform-style:preserve-3d;">
+                <div id="elbow" class="joint"></div>
+                <div id="radius-bone" class="arm-segment seg-radius"></div>
+                <div id="wrist" class="joint"></div>
+                <div id="metacarpal" class="arm-segment seg-metacarpal"></div>
+                <div id="mcp-joint" class="joint"></div>
+                <div id="proximal" class="arm-segment seg-proximal"></div>
+                <div id="pip-joint" class="joint"></div>
+                <div id="middle-phal" class="arm-segment seg-middle"></div>
+                <div id="dip-joint" class="joint"></div>
+                <div id="distal-phal" class="arm-segment seg-distal"></div>
+                <div id="pen-tip" class="stylus"></div>
+            </div>
+
+            <svg id="ink-path-container"
+                style="position:absolute;width:8000px;height:8000px;margin-left:-4000px;margin-top:-4000px;overflow:visible;pointer-events:none;">
+                <path id="ink-trail" class="ink-stroke" d="" />
+            </svg>
+
+            <div id="proof-container" class="absolute" style="pointer-events:none;">
+                <div id="cube-beta" style="position:absolute;transform-style:preserve-3d;opacity:0"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * PENMAN INSTRUMENT V4: RADIOGRAPHIC KINEMATICS
+         * Bone Ratios (Proximal : Middle : Distal) calibrated to ~ 2 : 1.5 : 1
+         * Metacarpal to Proximal calibrated to Golden Ratio (1.618) for 5th digit.
+         */
+        const ALGEBRAIC_ROOT = 5 * Math.pow(2, 1 / 3);
+        const state = {
+            radius: 5,
+            targetRadius: 5,
+            rotation: 0,
+            slope: 10,
+            targetSlope: 10,
+            zDepth: 0,
+            points: []
+        };
+
+        const hands = {
+            copperplate: { slope: 10, radius: 5.0, status: "METACARPAL BASE: 5-MANUS" },
+            italic: { slope: 15, radius: 6.0, status: "PHALANGEAL EXTENSION: 6-CUBIT" },
+            royal: { slope: 30, radius: ALGEBRAIC_ROOT, status: "ROYAL RESONANCE: ∛2 ALIGNMENT" }
+        };
+
+        function setHand(type) {
+            const h = hands[type];
+            state.targetSlope = h.slope;
+            state.targetRadius = h.radius;
+            document.getElementById('status-text').innerText = h.status;
+        }
+
+        function update() {
+            state.radius += (state.targetRadius - state.radius) * 0.03;
+            state.slope += (state.targetSlope - state.slope) * 0.03;
+            state.rotation += 1.5;
+            state.zDepth = state.rotation * Math.tan(state.slope * Math.PI / 180) * 0.4;
+
+            const world = document.getElementById('world');
+            world.style.transform = `rotateX(${state.slope}deg) rotateZ(3deg) translateZ(${-state.zDepth}px)`;
+
+            const scale = state.radius * 80;
+
+            // Measured Proportions (radiographic)
+            const L_Radius = scale * 0.6;
+            const L_Metacarpal = scale * 0.15;
+            const L_Proximal = L_Metacarpal / 1.618; // Golden Ratio (5th digit)
+            const L_Middle = L_Proximal * 0.75;      // 1.5 : 2 ratio
+            const L_Distal = L_Middle * 0.66;         // 1 : 1.5 ratio
+
+            const t = state.rotation * (Math.PI / 180);
+            const wristAng = state.rotation + Math.sin(state.rotation * 0.05) * 8;
+            const fingerAng = wristAng + Math.sin(state.rotation * 0.1) * 12;
+
+            const setSeg = (id, x, y, len, rot) => {
+                const el = document.getElementById(id);
+                el.style.left = `${x}px`;
+                el.style.top = `${y}px`;
+                el.style.width = `${len}px`;
+                el.style.transform = `rotate(${rot}deg)`;
+            };
+
+            const setJoint = (id, x, y) => {
+                const el = document.getElementById(id);
+                el.style.left = `${x}px`;
+                el.style.top = `${y}px`;
+            };
+
+            const wX = Math.cos(t) * L_Radius;
+            const wY = Math.sin(t) * L_Radius;
+            setSeg('radius-bone', 0, 0, L_Radius, state.rotation);
+            setJoint('wrist', wX, wY);
+
+            const mX = wX + Math.cos(wristAng * Math.PI / 180) * L_Metacarpal;
+            const mY = wY + Math.sin(wristAng * Math.PI / 180) * L_Metacarpal;
+            setSeg('metacarpal', wX, wY, L_Metacarpal, wristAng);
+            setJoint('mcp-joint', mX, mY);
+
+            const pX = mX + Math.cos(fingerAng * Math.PI / 180) * L_Proximal;
+            const pY = mY + Math.sin(fingerAng * Math.PI / 180) * L_Proximal;
+            setSeg('proximal', mX, mY, L_Proximal, fingerAng);
+            setJoint('pip-joint', pX, pY);
+
+            const miX = pX + Math.cos((fingerAng + 5) * Math.PI / 180) * L_Middle;
+            const miY = pY + Math.sin((fingerAng + 5) * Math.PI / 180) * L_Middle;
+            setSeg('middle-phal', pX, pY, L_Middle, fingerAng + 5);
+            setJoint('dip-joint', miX, miY);
+
+            const dX = miX + Math.cos((fingerAng + 10) * Math.PI / 180) * L_Distal;
+            const dY = miY + Math.sin((fingerAng + 10) * Math.PI / 180) * L_Distal;
+            setSeg('distal-phal', miX, miY, L_Distal, fingerAng + 10);
+
+            const stylus = document.getElementById('pen-tip');
+            stylus.style.left = `${dX}px`;
+            stylus.style.top = `${dY}px`;
+
+            const proximity = Math.abs(state.radius - ALGEBRAIC_ROOT);
+            const alignment = Math.max(0, (1 - (proximity / 1.5)) * 100);
+            document.getElementById('alignment-pct').innerText = alignment.toFixed(2) + "%";
+            document.getElementById('alignment-bar').style.width = alignment + "%";
+            document.getElementById('alignment-bar').style.background = alignment > 95 ? '#fbbf24' : '#2563eb';
+
+            if (proximity < 0.01 && state.targetSlope === 30) {
+                document.body.classList.add('vitrification');
+            } else {
+                document.body.classList.remove('vitrification');
+            }
+
+            state.points.push({ x: 4000 + dX, y: 4000 + dY });
+            if (state.points.length > 400) state.points.shift();
+            if (state.points.length > 2) {
+                let d = `M ${state.points[0].x} ${state.points[0].y}`;
+                for (let i = 1; i < state.points.length; i++) d += ` L ${state.points[i].x} ${state.points[i].y}`;
+                document.getElementById('ink-trail').setAttribute('d', d);
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        window.onload = () => {
+            // Build 90-ray Nautilus halo
+            const halo = document.getElementById('halo-93');
+            for (let i = 0; i < 90; i++) {
+                const ray = document.createElement('div');
+                ray.style.cssText = `
+                position: absolute; width: 1px; height: 100%; left: 50%;
+                background: linear-gradient(to top, transparent, rgba(59, 130, 246, 0.04));
+                transform: rotate(${i * 4}deg);
+            `;
+                halo.appendChild(ray);
+            }
+            update();
+        };
+    </script>
+</body>
+
+</html>
