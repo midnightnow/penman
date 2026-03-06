@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "vetsorcery"
+  },
+  "targets": {
+    "ponte-amico-bridge": {
+      "hosting": {
+        "penman": [
+          "manus-penman"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
